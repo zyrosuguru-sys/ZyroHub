@@ -1,164 +1,171 @@
---// ZYRO HUB - The Strongest Battlegrounds
---// Author: Zyro Hub
---// UI Library: Rayfield
---// Version: 1.0
+--// ZYRO HUB V2 - PRO
+--// Game: The Strongest Battlegrounds
+--// UI: Rayfield
+--// Mobile + PC Friendly
 
--- Load UI Library
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+-- Load UI
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
--- Tạo Window chính
+-- Window
 local Window = Rayfield:CreateWindow({
-    Name = "Zyro Hub | The Strongest Battlegrounds",
-    LoadingTitle = "Zyro Hub",
-    LoadingSubtitle = "by Zyro",
+    Name = "Zyro Hub V2 | The Strongest Battlegrounds",
+    LoadingTitle = "Zyro Hub V2",
+    LoadingSubtitle = "PRO Edition",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "ZyroHub",
-        FileName = "TSB"
+        FileName = "TSB_V2"
     },
-    Discord = {Enabled = false},
     KeySystem = false
 })
 
--- =========================
--- TAB COMBAT
--- =========================
-local CombatTab = Window:CreateTab("🥊 Combat", 4483362458)
+------------------------------------------------
+-- COMBAT
+------------------------------------------------
+local Combat = Window:CreateTab("🥊 Combat", 4483362458)
 
-local autoPunch = false
-CombatTab:CreateToggle({
+local AutoPunch = false
+Combat:CreateToggle({
     Name = "Auto Punch",
     CurrentValue = false,
     Callback = function(v)
-        autoPunch = v
+        AutoPunch = v
         task.spawn(function()
-            while autoPunch do
-                -- Giả lập click chuột
-                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game,0)
-                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,false,game,0)
-                task.wait(0.1)
+            while AutoPunch do
+                pcall(function()
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game,0)
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,false,game,0)
+                end)
+                task.wait(0.12)
             end
         end)
     end
 })
 
-local hitboxSize = 5
-CombatTab:CreateSlider({
-    Name = "Hitbox Extender",
-    Range = {2, 20},
+local Hitbox = 6
+Combat:CreateSlider({
+    Name = "Hitbox Size",
+    Range = {3,25},
     Increment = 1,
-    CurrentValue = 5,
+    CurrentValue = 6,
     Callback = function(v)
-        hitboxSize = v
+        Hitbox = v
     end
 })
 
--- Hitbox extender loop
 task.spawn(function()
     while task.wait(1) do
-        for _,v in pairs(game.Players:GetPlayers()) do
-            if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                v.Character.HumanoidRootPart.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                v.Character.HumanoidRootPart.Transparency = 0.7
-                v.Character.HumanoidRootPart.CanCollide = false
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = plr.Character.HumanoidRootPart
+                hrp.Size = Vector3.new(Hitbox,Hitbox,Hitbox)
+                hrp.Transparency = 0.6
+                hrp.CanCollide = false
             end
         end
     end
 end)
 
-CombatTab:CreateSlider({
-    Name = "Fast Attack Speed",
-    Range = {1, 10},
-    Increment = 1,
-    CurrentValue = 3,
-    Callback = function(v)
-        getgenv().AttackSpeed = v
-    end
-})
+------------------------------------------------
+-- MOVEMENT
+------------------------------------------------
+local Move = Window:CreateTab("🏃 Movement", 4483362458)
 
--- =========================
--- TAB MOVEMENT
--- =========================
-local MoveTab = Window:CreateTab("🏃 Movement", 4483362458)
-
-MoveTab:CreateSlider({
+Move:CreateSlider({
     Name = "WalkSpeed",
-    Range = {16, 200},
+    Range = {16,200},
     Increment = 1,
     CurrentValue = 16,
     Callback = function(v)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+        LP.Character.Humanoid.WalkSpeed = v
     end
 })
 
-MoveTab:CreateSlider({
+Move:CreateSlider({
     Name = "JumpPower",
-    Range = {50, 300},
+    Range = {50,300},
     Increment = 5,
     CurrentValue = 50,
     Callback = function(v)
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+        LP.Character.Humanoid.JumpPower = v
     end
 })
 
-local infJump = false
-MoveTab:CreateToggle({
+local InfJump = false
+Move:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
     Callback = function(v)
-        infJump = v
+        InfJump = v
     end
 })
 
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if infJump then
-        game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+UIS.JumpRequest:Connect(function()
+    if InfJump then
+        LP.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- =========================
--- TAB TELEPORT
--- =========================
-local TeleportTab = Window:CreateTab("🌍 Teleport", 4483362458)
+------------------------------------------------
+-- TELEPORT
+------------------------------------------------
+local TP = Window:CreateTab("🌍 Teleport", 4483362458)
 
-TeleportTab:CreateButton({
-    Name = "Teleport To Random Player",
+local PlayerList = {}
+for _,v in pairs(Players:GetPlayers()) do
+    if v ~= LP then table.insert(PlayerList, v.Name) end
+end
+
+local SelectedPlayer
+TP:CreateDropdown({
+    Name = "Select Player",
+    Options = PlayerList,
+    CurrentOption = nil,
+    Callback = function(v)
+        SelectedPlayer = v
+    end
+})
+
+TP:CreateButton({
+    Name = "Teleport To Player",
     Callback = function()
-        local plrs = game.Players:GetPlayers()
-        local target = plrs[math.random(1,#plrs)]
-        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-                target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+        if SelectedPlayer then
+            local Target = Players:FindFirstChild(SelectedPlayer)
+            if Target and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+                LP.Character.HumanoidRootPart.CFrame =
+                    Target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+            end
         end
     end
 })
 
-TeleportTab:CreateButton({
-    Name = "Teleport To Map Center",
-    Callback = function()
-        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 50, 0)
-    end
-})
+------------------------------------------------
+-- VISUAL
+------------------------------------------------
+local Visual = Window:CreateTab("👁 Visual", 4483362458)
 
--- =========================
--- TAB VISUAL
--- =========================
-local VisualTab = Window:CreateTab("👁 Visual", 4483362458)
-
-local espEnabled = false
-VisualTab:CreateToggle({
+local ESP = false
+Visual:CreateToggle({
     Name = "ESP Player",
     CurrentValue = false,
     Callback = function(v)
-        espEnabled = v
-        for _,plr in pairs(game.Players:GetPlayers()) do
-            if plr ~= game.Players.LocalPlayer then
+        ESP = v
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= LP and plr.Character then
                 if v then
-                    local h = Instance.new("Highlight", plr.Character)
-                    h.FillColor = Color3.fromRGB(170, 0, 255)
+                    if not plr.Character:FindFirstChild("ZyroESP") then
+                        local h = Instance.new("Highlight")
+                        h.Name = "ZyroESP"
+                        h.FillColor = Color3.fromRGB(170,0,255)
+                        h.Parent = plr.Character
+                    end
                 else
-                    if plr.Character and plr.Character:FindFirstChild("Highlight") then
-                        plr.Character.Highlight:Destroy()
+                    if plr.Character:FindFirstChild("ZyroESP") then
+                        plr.Character.ZyroESP:Destroy()
                     end
                 end
             end
@@ -166,57 +173,60 @@ VisualTab:CreateToggle({
     end
 })
 
-VisualTab:CreateButton({
-    Name = "Full Bright",
+Visual:CreateButton({
+    Name = "FPS Boost",
     Callback = function()
-        game.Lighting.Brightness = 5
-        game.Lighting.ClockTime = 14
-        game.Lighting.FogEnd = 100000
+        for _,v in pairs(game:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+        end
     end
 })
 
--- =========================
--- TAB SETTINGS
--- =========================
-local SettingsTab = Window:CreateTab("⚙ Settings", 4483362458)
+------------------------------------------------
+-- SETTINGS
+------------------------------------------------
+local Settings = Window:CreateTab("⚙ Settings", 4483362458)
 
-SettingsTab:CreateButton({
-    Name = "Rejoin Server",
+Settings:CreateButton({
+    Name = "Server Hop",
     Callback = function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId)
+        local Http = game:GetService("HttpService")
+        local Servers = Http:JSONDecode(game:HttpGet(
+            "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+        ))
+        for _,s in pairs(Servers.data) do
+            if s.playing < s.maxPlayers then
+                game:GetService("TeleportService"):TeleportToPlaceInstance(
+                    game.PlaceId, s.id, LP
+                )
+                break
+            end
+        end
     end
 })
 
-SettingsTab:CreateButton({
-    Name = "Anti AFK",
-    Callback = function()
-        local vu = game:GetService("VirtualUser")
-        game.Players.LocalPlayer.Idled:Connect(function()
-            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-        end)
-    end
-})
-
-SettingsTab:CreateButton({
+Settings:CreateButton({
     Name = "Destroy Zyro Hub",
     Callback = function()
         Rayfield:Destroy()
     end
 })
 
--- =========================
--- MINI HUB (Toggle UI)
--- =========================
+------------------------------------------------
+-- MINI HUB (MOBILE)
+------------------------------------------------
 Rayfield:Notify({
-    Title = "Zyro Hub Loaded",
-    Content = "Nhấn RightShift để Ẩn/Hiện UI",
+    Title = "Zyro Hub V2",
+    Content = "RightShift (PC) hoặc nút tròn (Mobile)",
     Duration = 6
 })
 
--- Toggle UI bằng RightShift
-game:GetService("UserInputService").InputBegan:Connect(function(i,g)
+UIS.InputBegan:Connect(function(i,g)
     if not g and i.KeyCode == Enum.KeyCode.RightShift then
         Rayfield:ToggleUI()
     end
